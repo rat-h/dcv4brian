@@ -49,7 +49,7 @@ def dcvinit(tblsize :int,nvar:int,init:ndarray,c_target:bool=True):
             fd.write("#endif\n")
     else:
         dcvinit.dcvtbl = zeros((tblsize,nvar))
-        for n in range(tblsize): dcvinit.dcvtbl[n] = init
+        for n in range(tblsize): dcvinit.dcvtbl[n] = copy(init)
         dcvinit.dcvIndex = 0
         dcvinit.dcvDsize = tblsize
         dcvinit.dcvVsize = nvar
@@ -83,7 +83,7 @@ def dcvupdate(x,i):
     
     """
     dcvinit.dcvIndex = (dcvinit.dcvDsize-1) if dcvinit.dcvIndex == 0 else (dcvinit.dcvIndex-1)
-    dcvinit.dcvtbl[dcvinit.dcvIndex,i] = x
+    dcvinit.dcvtbl[dcvinit.dcvIndex,i] = copy(x)
     return 0
 
 
@@ -102,5 +102,4 @@ def dcvget(dly,varid):
     `dcvget` returns a value of continues variable defined by variable ID (`varid`)
     `dly` steps ago.
     """
-    dcvinit.dcvtbl[(dcvinit.dcvIndex+dly)%dcvinit.dcvDsize,varid]
-    return 0
+    return dcvinit.dcvtbl[(dcvinit.dcvIndex+dly)%dcvinit.dcvDsize,varid]

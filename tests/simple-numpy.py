@@ -21,35 +21,34 @@ dI/dt  = (S - I)/taue     : 1 (unless refractory)
 S : 1
 '''
 
-N = NeuronGroup(4, eqs, threshold='v>Vt', reset='v = Vr; I = 0', refractory=5*ms, method='euler')
+N = NeuronGroup(4, eqs, threshold='v>Vt', reset='v = Vr; I = 0', refractory=1*ms, method='euler')
 N.v = 'Vr'
 
 
 W = Synapses(N, N, """
     w : 1 # synaptic weight
     dly : integer (constant) # delay
-    sid : integer  (constant) # synaptic ID (it should be something like i or j variable, ask @mstimberg)
-    S_post = w/(1+exp(-(dcvget(dly,sid)-Vt))) : 1  (summed)
+    S_post = w/(1+exp(-(dcvget(dly,i)-Vt))) : 1  (summed)
     #S_post = w/(1+exp(-(v_pre-Vt))) : 1  (summed)
 """)
 
 W.connect(i=[0,1,2,3],j=[1,2,3,0])
-W.dly = [ int(round((30+i*10)*ms/defaultclock.dt)) for i in range(4) ]
-W.sid = 'j'
-W.w   = 100.
+W.dly = [ int(round((100+i*10)*ms/defaultclock.dt)) for i in range(4) ]
+W.w   = 50.
 
 M = StateMonitor(N, ['v','I','S'], record=True)
 dcvinit(amax(W.dly).astype(int)+5,4,array([Vr,Vr,Vr,Vr]),c_target=False)
 updater     = N.run_regularly('return_ = dcvupdate(v, i)')
 
 
-run(2*second)
+run(2000*ms)
 
 axv = subplot(3,1,1)
-plot(M.t/ms,M[0].v,"-")
-plot(M.t/ms,M[1].v,"-")
-plot(M.t/ms,M[2].v,"-")
-plot(M.t/ms,M[3].v,"-")
+plot(M.t/ms,M[0].v,"-",lw=2,label="0")
+plot(M.t/ms,M[1].v,"-",lw=2,label="1")
+plot(M.t/ms,M[2].v,"-",lw=2,label="2")
+plot(M.t/ms,M[3].v,"-",lw=2,label="3")
+legend(loc=0)
 axi = subplot(3,1,2,sharex=axv)
 plot(M.t/ms,M[0].I,"-")
 plot(M.t/ms,M[1].I,"-")
