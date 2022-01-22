@@ -34,7 +34,6 @@ def dcvinit(tblsize :int,nvar:int,init:ndarray,c_target:bool=True):
         with open("dcv4brian.c","w") as fd:
             fd.write("#ifndef __DCV4BRIAN__\n")
             fd.write("#define __DCV4BRIAN__\n")        
-            fd.write(f"static double dcv_dt    = {dt};\n")
             fd.write(f"static int    dcvDsize  = {tblsize:d};\n")
             fd.write(f"static int    dcvVsize  = {nvar:d};\n")
             fd.write(f"static int    dcvIndex  = 0;\n")
@@ -47,12 +46,13 @@ def dcvinit(tblsize :int,nvar:int,init:ndarray,c_target:bool=True):
             fd.write("};\n")
             fd.write(protofunctions+"\n")
             fd.write("#endif\n")
-    else:
-        dcvinit.dcvtbl = zeros((tblsize,nvar))
-        for n in range(tblsize): dcvinit.dcvtbl[n] = copy(init)
-        dcvinit.dcvIndex = 0
-        dcvinit.dcvDsize = tblsize
-        dcvinit.dcvVsize = nvar
+    # else:
+        # dcvinit.c_target = True
+    dcvinit.dcvtbl = zeros((tblsize,nvar))
+    for n in range(tblsize): dcvinit.dcvtbl[n] = copy(init)
+    dcvinit.dcvIndex = 0
+    dcvinit.dcvDsize = tblsize
+    dcvinit.dcvVsize = nvar
     
     
 
@@ -82,6 +82,7 @@ def dcvupdate(x,i):
         i - an index
     
     """
+    
     dcvinit.dcvIndex = (dcvinit.dcvDsize-1) if dcvinit.dcvIndex == 0 else (dcvinit.dcvIndex-1)
     dcvinit.dcvtbl[dcvinit.dcvIndex,i] = copy(x)
     return 0
