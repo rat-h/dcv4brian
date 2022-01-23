@@ -7,6 +7,10 @@ void _dcvupdate(double x, int i){
     if ( i == 0 )
         dcvIndex = (dcvIndex == 0)?(dcvDsize-1):(dcvIndex-1);
     dcvtbl[dcvIndex][i] = x;
+    //DB>>
+    if ( i == (dcvDsize-1) ) printf("%d:%0.2f\n",i,x);
+    else                     printf("%d:%0.2f, ",i,x);
+    //<<DB
     return ;
 }
 double _dcvget(int dly, int varid){
@@ -65,9 +69,8 @@ void dcvupdate(double x, int i){
 ''',include_dirs=[os.getcwd()])
 @implementation('cython',f'''
 cdef extern from "{os.getcwd()}/dcv4brian.c":
-    void _dcvupdate(double, int)
-    double _dcvget(int, int)
-cdef void dcvupdate(double x, int i):
+    void   _dcvupdate(double, int)
+cdef int dcvupdate(double x, int i):
     _dcvupdate(x,i)
     return 0
 ''',include_dirs=[os.getcwd()])
@@ -94,6 +97,8 @@ double dcvget(int dly, int varid){
 }
 ''',include_dirs=[os.getcwd()])
 @implementation('cython',f'''
+cdef extern from "{os.getcwd()}/dcv4brian.c":
+    double _dcvget(int, int)
 cdef double dcvget(int dly, int varid):
     return _dcvget(dly, varid)
 ''',include_dirs=[os.getcwd()])
