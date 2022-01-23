@@ -31,8 +31,6 @@ N.S = 'Vr'
 W = Synapses(N, N, """
     dly                     : integer (constant) # delay
     S_post = dcvget(dly,i)  : 1  (summed)
-#    S_post = v_pre  : 1  (summed)
-
 """)
 xdly  = array([ int(round((100+i*30)*ms/defaultclock.dt)) for i in range(4) ])
 W.connect(i=[0,1,2,3],j=[1,2,3,0])
