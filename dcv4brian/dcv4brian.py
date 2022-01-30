@@ -93,7 +93,7 @@ def dcvsetget(varid:(int,ndarray), varval:(float,ndarray), dly:int, t:float):
         dly   - int   - number of steps to read value in the table
         t     - float - current time
     """
-    if (t-dcvinit.dcvTime-dcvinit.dcvdt) < 1e-9:
+    if abs(t-dcvinit.dcvTime-dcvinit.dcvdt) < 1e-9:
         dcvinit.dcvIndex = (dcvinit.dcvDsize-1) if dcvinit.dcvIndex == 0 else (dcvinit.dcvIndex-1)
         dcvinit.dcvTime = t
     dcvinit.dcvtbl[dcvinit.dcvIndex,varid] = copy(varval)
