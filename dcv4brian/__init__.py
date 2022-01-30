@@ -1,1 +1,2 @@
-from .dcv4brian import dcvinit, dcvupdate, dcvget
+from .dcv4brian import dcvinit,  dcvsetget
+#from .dcv4brian import dcv

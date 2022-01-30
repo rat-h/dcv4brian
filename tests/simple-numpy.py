@@ -30,34 +30,35 @@ N.S = 'Vr'
 
 W = Synapses(N, N, """
     dly                     : integer (constant) # delay
-    S_post = dcvget(dly,i)  : 1  (summed)
+    S_post = dcvsetget(i,v_pre,dly,t/ms)  : 1  (summed)
 """)
 xdly  = array([ int(round((100+i*30)*ms/defaultclock.dt)) for i in range(4) ])
 W.connect(i=[0,1,2,3],j=[1,2,3,0])
 W.dly = xdly
 
 M = StateMonitor(N, ['v','I','S'], record=True)
-dcvinit(amax(xdly).astype(int)+5,4,array([Vr,Vr,Vr,Vr]),c_target=False)
-updater     = N.run_regularly('return_ = dcvupdate(v, i)')
+dcvinit(amax(xdly).astype(int)+5,4,defaultclock.dt/ms,array([Vr,Vr,Vr,Vr]),c_target=False)
 
 
 run(2000*ms)
 
+figure(1,figsize=(16,12))
+suptitle("NumPy",fontsize=24)
 subplot(4,1,1)
 plot(M.t/ms,M[0].v,"-",lw=3,label="neuron-0")
 plot(M.t/ms,M[1].S,"-",lw=3,label="delayed in 1")
-legend(loc=0,fontsize=16)
+legend(loc=1,fontsize=16)
 subplot(4,1,2)
 plot(M.t/ms,M[1].v,"-",lw=3,label="neuron-1")
 plot(M.t/ms,M[2].S,"-",lw=3,label="delayed in 2")
-legend(loc=0,fontsize=16)
+legend(loc=1,fontsize=16)
 subplot(4,1,3)
 plot(M.t/ms,M[2].v,"-",lw=3,label="neuron-2")
 plot(M.t/ms,M[3].S,"-",lw=3,label="delayed in 3")
-legend(loc=0,fontsize=16)
+legend(loc=1,fontsize=16)
 subplot(4,1,4)
 plot(M.t/ms,M[3].v,"-",lw=3,label="neuron-3")
 plot(M.t/ms,M[0].S,"-",lw=3,label="delayed in 0")
-legend(loc=0,fontsize=16)
+legend(loc=1,fontsize=16)
 
 show()
