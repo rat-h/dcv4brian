@@ -3,24 +3,23 @@ from brian2 import *
 import os
 
 protofunction='''
-double _dcvsetget(int varid, double varval, int dly, double t){
-    if ( fabs(t-dcvTime-dcvdt) < 1e-9 ){
+double _dcvsetget(int varid, double varval, int dly, int t_in_steps){
+    if ( t_in_steps != dcvTime ){
         dcvIndex = (dcvIndex == 0)?(dcvDsize-1):(dcvIndex-1);
-        dcvTime  = t;
+        dcvTime  = t_in_steps;
     }
     dcvtbl[dcvIndex][varid] = varval;
     return dcvtbl[(dcvIndex+dly)%dcvDsize][varid] ;
 }
 '''
 
-def dcvinit(tblsize :int,nvar:int,simdt:float,init:ndarray,c_target:bool=True):
+def dcvinit(tblsize :int,nvar:int,init:ndarray,c_target:bool=True):
     """
     It generates dcv4brian.c file with all required static variables
     for cpp and cython targets.
     Parameters:
         tblsize  - int     - max number of steps to remember
         nvar     - int     - number of delayed continues variables (DCV)
-        simdt    - float   - simulation time step
         init     - ndarray - 1D array with initial value for each DCV
                            - this values fill up the table, therefore
                            - if a variable is a membrane potential of a 
@@ -34,12 +33,10 @@ def dcvinit(tblsize :int,nvar:int,simdt:float,init:ndarray,c_target:bool=True):
         with open("dcv4brian.c","w") as fd:
             fd.write("#ifndef __DCV4BRIAN__\n")
             fd.write("#define __DCV4BRIAN__\n")
-            fd.write("#include <math.h>\n")
             fd.write(f"const  int    dcvDsize  = {tblsize:d};\n")
             fd.write(f"const  int    dcvVsize  = {nvar:d};\n")
             fd.write(f"static int    dcvIndex  = 0;\n")
-            fd.write(f"static double dcvdt     = {simdt};\n")
-            fd.write(f"static double dcvTime   = 0;\n")
+            fd.write(f"static int    dcvTime   = 0;\n")
             fd.write(f"static double dcvtbl[{tblsize:d}][{nvar:d}] = {{"+"\n")
             for cid in range(tblsize):
                 fd.write("   {")
@@ -51,8 +48,7 @@ def dcvinit(tblsize :int,nvar:int,simdt:float,init:ndarray,c_target:bool=True):
             fd.write("#endif\n")
         dcvinit.dcvtbl   = None
         dcvinit.dcvIndex = 0
-        dcvinit.dcvTime  = 0.
-        dcvinit.dcvdt    = simdt
+        dcvinit.dcvTime  = 0
         dcvinit.dcvDsize = tblsize
         dcvinit.dcvVsize = nvar
             
@@ -61,8 +57,7 @@ def dcvinit(tblsize :int,nvar:int,simdt:float,init:ndarray,c_target:bool=True):
         dcvinit.dcvtbl   = zeros((tblsize,nvar))
         for n in range(tblsize): dcvinit.dcvtbl[n] = copy(init)
         dcvinit.dcvIndex = 0
-        dcvinit.dcvTime  = 0.
-        dcvinit.dcvdt    = simdt
+        dcvinit.dcvTime  = 0
         dcvinit.dcvDsize = tblsize
         dcvinit.dcvVsize = nvar
     
@@ -70,18 +65,18 @@ def dcvinit(tblsize :int,nvar:int,simdt:float,init:ndarray,c_target:bool=True):
 
 @implementation('cpp', '''
 #include <dcv4brian.c>;
-double dcvsetget(int varid, double varval, int dly, double t){
-    return _dcvsetget(varid,varval,dly,t);
+double dcvsetget(int varid, double varval, int dly, int t_in_steps){
+    return _dcvsetget(varid,varval,dly,t_in_steps);
 }
 ''',include_dirs=[os.getcwd()])
 @implementation('cython',f'''
 cdef extern from "{os.getcwd()}/dcv4brian.c":
-    double _dcvsetget(int, double, int, double)
-cdef double dcvsetget(int varid, double varval, int dly, double t):
-    return _dcvsetget(varid,varval,dly,t);
+    double _dcvsetget(int, double, int, int)
+cdef double dcvsetget(int varid, double varval, int dly, int t_in_steps):
+    return _dcvsetget(varid,varval,dly,t_in_steps);
 ''',include_dirs=[os.getcwd()])
 @check_units(arg=[1,1,1,1],result=1)
-def dcvsetget(varid:(int,ndarray), varval:(float,ndarray), dly:int, t:float):
+def dcvsetget(varid:(int,ndarray), varval:(float,ndarray), dly:int, t_in_steps:int):
     """
     dcvsetget write current variable value into the table and returns
     a value of the same variable delayed by dly steps
@@ -93,8 +88,8 @@ def dcvsetget(varid:(int,ndarray), varval:(float,ndarray), dly:int, t:float):
         dly   - int   - number of steps to read value in the table
         t     - float - current time
     """
-    if abs(t-dcvinit.dcvTime-dcvinit.dcvdt) < 1e-9:
+    if t_in_steps != dcvinit.dcvTime:
         dcvinit.dcvIndex = (dcvinit.dcvDsize-1) if dcvinit.dcvIndex == 0 else (dcvinit.dcvIndex-1)
-        dcvinit.dcvTime = t
+        dcvinit.dcvTime = t_in_steps
     dcvinit.dcvtbl[dcvinit.dcvIndex,varid] = copy(varval)
     return dcvinit.dcvtbl[(dcvinit.dcvIndex+dly)%dcvinit.dcvDsize,varid]
