@@ -3,8 +3,18 @@ from brian2 import *
 import os
 
 protofunction='''
+
+void _dcvinit(){
+     dcvtbl = (double **) malloc( sizeof(double *) * dcvDsize );
+     for (int r=0 ; r<dcvDsize; r++){
+        dcvtbl[r] = (double *) malloc (sizeof(double) * dcvVsize);
+        memcpy(dcvtbl[r],dcvtblinit,dcvVsize*sizeof(double));
+     }
+}
+
 double _dcvsetget(int varid, double varval, int dly, int t_in_steps){
     if ( t_in_steps != dcvTime ){
+        if ( dcvtbl == NULL) _dcvinit() ;
         dcvIndex = (dcvIndex == 0)?(dcvDsize-1):(dcvIndex-1);
         dcvTime  = t_in_steps;
     }
@@ -36,14 +46,13 @@ def dcvinit(tblsize :int,nvar:int,init:ndarray,c_target:bool=True):
             fd.write(f"const  int    dcvDsize  = {tblsize:d};\n")
             fd.write(f"const  int    dcvVsize  = {nvar:d};\n")
             fd.write(f"static int    dcvIndex  = 0;\n")
-            fd.write(f"static int    dcvTime   = 0;\n")
-            fd.write(f"static double dcvtbl[{tblsize:d}][{nvar:d}] = {{"+"\n")
-            for cid in range(tblsize):
-                fd.write("   {")
-                for x in range(nvar):
-                    fd.write(f"{init[x]}"+("," if x != nvar-1 else "}") )
-                fd.write(",\n" if cid != tblsize-1 else "\n")
-            fd.write("};\n")
+            fd.write(f"static int    dcvTime   = -1;\n")
+            fd.write(f"static double **dcvtbl  = NULL;\n")
+            fd.write(f"const  double dcvtblinit[{nvar:d}] = ")
+            fd.write("   {")
+            for x in range(nvar):
+                fd.write(f"{init[x]}"+("," if x != nvar-1 else "}") )
+            fd.write("; \n")
             fd.write(protofunction+"\n")
             fd.write("#endif\n")
         dcvinit.dcvtbl   = None
@@ -64,6 +73,7 @@ def dcvinit(tblsize :int,nvar:int,init:ndarray,c_target:bool=True):
     
 
 @implementation('cpp', '''
+#include <string.h>;
 #include <dcv4brian.c>;
 double dcvsetget(int varid, double varval, int dly, int t_in_steps){
     return _dcvsetget(varid,varval,dly,t_in_steps);
