@@ -42,6 +42,7 @@ dcvinit(amax(xdly).astype(int)+5,4,array([Vr,Vr,Vr,Vr]),c_target=True)
 
 
 run(2000*ms)
+dcvcleanup()
 
 figure(1,figsize=(16,12))
 suptitle("cpp-standalone",fontsize=24)

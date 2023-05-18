@@ -1,6 +1,10 @@
 from numpy import *
+from numpy.random import randint
 from brian2 import *
 import os
+
+
+CfileID=f'dcv4brian_{randint(0xffff):04x}.c'
 
 protofunction='''
 
@@ -25,7 +29,7 @@ double _dcvsetget(int varid, double varval, int dly, int t_in_steps){
 
 def dcvinit(tblsize :int,nvar:int,init:ndarray,c_target:bool=True):
     """
-    It generates dcv4brian.c file with all required static variables
+    It generates dcv4brian_RAND.c file with all required static variables
     for cpp and cython targets.
     Parameters:
         tblsize  - int     - max number of steps to remember
@@ -40,7 +44,7 @@ def dcvinit(tblsize :int,nvar:int,init:ndarray,c_target:bool=True):
     """
     dcvinit.c_target = c_target
     if c_target:
-        with open("dcv4brian.c","w") as fd:
+        with open(CfileID,"w") as fd:
             fd.write("#ifndef __DCV4BRIAN__\n")
             fd.write("#define __DCV4BRIAN__\n")
             fd.write(f"const  int    dcvDsize  = {tblsize:d};\n")
@@ -72,15 +76,15 @@ def dcvinit(tblsize :int,nvar:int,init:ndarray,c_target:bool=True):
     
     
 
-@implementation('cpp', '''
+@implementation('cpp', f'''
 #include <string.h>;
-#include <dcv4brian.c>;
-double dcvsetget(int varid, double varval, int dly, int t_in_steps){
+#include <{CfileID}>;
+double dcvsetget(int varid, double varval, int dly, int t_in_steps){{
     return _dcvsetget(varid,varval,dly,t_in_steps);
-}
+}}
 ''',include_dirs=[os.getcwd()])
 @implementation('cython',f'''
-cdef extern from "{os.getcwd()}/dcv4brian.c":
+cdef extern from "{os.getcwd()}/{CfileID}":
     double _dcvsetget(int, double, int, int)
 cdef double dcvsetget(int varid, double varval, int dly, int t_in_steps):
     return _dcvsetget(varid,varval,dly,t_in_steps);
@@ -103,3 +107,7 @@ def dcvsetget(varid:(int,ndarray), varval:(float,ndarray), dly:int, t_in_steps:i
         dcvinit.dcvTime = t_in_steps
     dcvinit.dcvtbl[dcvinit.dcvIndex,varid] = copy(varval)
     return dcvinit.dcvtbl[(dcvinit.dcvIndex+dly)%dcvinit.dcvDsize,varid]
+
+def dcvcleanup():
+    if dcvinit.c_target:
+        os.remove(CfileID)

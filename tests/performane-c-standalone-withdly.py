@@ -44,3 +44,4 @@ dcvinit(amax(xdly[:,2]).astype(int)+5,xdly.shape[0],array([Vr for l in xdly]),c_
 
 run(20000*ms,report='text')
 
+dcvcleanup()
